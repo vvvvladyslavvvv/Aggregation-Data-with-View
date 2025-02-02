@@ -1,0 +1,35 @@
+CREATE VIEW
+  `Students.sent_my_months_counter` AS (
+  SELECT
+    EXTRACT(month
+    FROM
+      DATE_ADD(session.date, INTERVAL es.sent_date day)) AS sent_month,
+    account_id,
+    COUNT(DISTINCT id_message) AS messages_per_account,
+    MIN(DATE_ADD(session.date, INTERVAL es.sent_date day)) AS first_sent_date,
+    MAX(DATE_ADD(session.date, INTERVAL es.sent_date day)) AS last_sent_date
+  FROM
+    `data-analytics-mate.DA.session` AS session
+  LEFT JOIN
+    `data-analytics-mate.DA.account_session` AS acs
+  ON
+    acs.ga_session_id = session.ga_session_id
+  JOIN
+    `data-analytics-mate.DA.email_sent` AS es
+  ON
+    es.id_account = acs.account_id
+  GROUP BY
+    EXTRACT(month
+    FROM
+      DATE_ADD(session.date, INTERVAL es.sent_date day)),
+    account_id );
+SELECT
+  sent_month,
+  account_id,
+  messages_per_account / SUM(messages_per_account) OVER(PARTITION BY sent_month) * 100 AS sent_msg_percent_from_this_month,
+  first_sent_date,
+  last_sent_date,
+FROM
+  `Students.sent_my_months_counter`
+
+
